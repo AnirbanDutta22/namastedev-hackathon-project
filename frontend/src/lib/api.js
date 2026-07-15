@@ -39,6 +39,15 @@ export const api = {
       body: JSON.stringify({ action, params }),
     }).then(handle),
 
+  // Convenience wrapper for the attack -> patch -> re-verify loop: severs
+  // exactly the hop the AI recommended fixing.
+  patchHop: (sessionId, source, target) =>
+    fetch(`${BASE_URL}/api/scenario/${sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "patch_hop", params: { source, target } }),
+    }).then(handle),
+
   ask: (sessionId, question, persona = "red") =>
     fetch(`${BASE_URL}/api/ask/${sessionId}`, {
       method: "POST",

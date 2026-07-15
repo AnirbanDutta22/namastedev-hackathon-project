@@ -191,6 +191,7 @@ export default function GraphCanvas({
   selectedNodeId,
   activePathEdges = new Set(),
   compromisedNodes = new Set(),
+  securedNodes = new Set(),
   personaColor = "#ff3b4e",
 }) {
   const { rfNodes, rfEdges } = useMemo(() => {
@@ -201,15 +202,23 @@ export default function GraphCanvas({
     const rfNodes = positioned.map((n) => {
       const isCompromised = compromisedNodes.has(n.id);
       const isSelected = n.id === selectedNodeId;
+      const isSecured = securedNodes.has(n.id);
+      const SECURE_COLOR = "#10b981";
 
       const baseRiskColor =
         n.id === "internet" ? personaColor : riskColor(n.risk_score || 0);
-      const nodeBorderColor = isCompromised
-        ? personaColor
-        : isSelected
+      const nodeBorderColor = isSecured
+        ? SECURE_COLOR
+        : isCompromised
           ? personaColor
-          : baseRiskColor;
-      const nodeBgColor = isCompromised ? `${personaColor}1f` : THEME.nodeBg;
+          : isSelected
+            ? personaColor
+            : baseRiskColor;
+      const nodeBgColor = isSecured
+        ? `${SECURE_COLOR}14`
+        : isCompromised
+          ? `${personaColor}1f`
+          : THEME.nodeBg;
 
       const IconComponent =
         NodeIcons[n.type] ||
@@ -229,7 +238,7 @@ export default function GraphCanvas({
       return {
         id: n.id,
         position: { x: n.x, y: n.y },
-        zIndex: isCompromised ? 110 : isSelected ? 120 : 10,
+        zIndex: isCompromised || isSecured ? 110 : isSelected ? 120 : 10,
         data: {
           label: (
             <div
@@ -240,7 +249,7 @@ export default function GraphCanvas({
                 overflow: "hidden",
               }}
             >
-              {isCompromised && (
+              {isCompromised && !isSecured && (
                 <div
                   style={{
                     position: "absolute",
@@ -253,13 +262,48 @@ export default function GraphCanvas({
                   }}
                 />
               )}
+              {isSecured && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: SECURE_COLOR,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    animation: "scaleIn 0.4s var(--ease-out)",
+                  }}
+                  title="Secured by your patch"
+                >
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#05070c"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
+              )}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
                   marginBottom: 6,
-                  color: isCompromised ? personaColor : THEME.textMuted,
+                  color: isSecured
+                    ? SECURE_COLOR
+                    : isCompromised
+                      ? personaColor
+                      : THEME.textMuted,
                 }}
               >
                 <IconComponent />
@@ -271,9 +315,9 @@ export default function GraphCanvas({
                     letterSpacing: "0.3px",
                   }}
                 >
-                  {n.type}
+                  {isSecured ? "Secured" : n.type}
                 </span>
-                {isCompromised && (
+                {isCompromised && !isSecured && (
                   <span
                     style={{
                       marginLeft: "auto",
@@ -317,18 +361,21 @@ export default function GraphCanvas({
         style: {
           background: nodeBgColor,
           borderColor: nodeBorderColor,
-          borderWidth: isCompromised || isSelected ? "2px" : "1px",
+          borderWidth: isCompromised || isSelected || isSecured ? "2px" : "1px",
           borderStyle: "solid",
           borderRadius: 7,
           padding: "12px 14px",
           color: THEME.text,
           width: 190,
-          opacity: isCompromised || !isAnySimulationActive ? 1 : 0.35,
-          boxShadow: isCompromised
-            ? `0 0 26px ${personaColor}55, inset 0 0 8px ${personaColor}22`
-            : isSelected
-              ? `0 0 0 3px ${personaColor}44`
-              : "0 4px 6px -1px rgba(0, 0, 0, 0.4)",
+          opacity:
+            isCompromised || isSecured || !isAnySimulationActive ? 1 : 0.35,
+          boxShadow: isSecured
+            ? `0 0 26px ${SECURE_COLOR}55, inset 0 0 8px ${SECURE_COLOR}22`
+            : isCompromised
+              ? `0 0 26px ${personaColor}55, inset 0 0 8px ${personaColor}22`
+              : isSelected
+                ? `0 0 0 3px ${personaColor}44`
+                : "0 4px 6px -1px rgba(0, 0, 0, 0.4)",
           transition: "all 0.25s ease-in-out",
         },
       };
@@ -337,6 +384,40 @@ export default function GraphCanvas({
     const rfEdges = graph.edges.map((e, i) => {
       const key = `${e.source}->${e.target}`;
       const active = activePathEdges.has(key);
+      const isPatched = !!e.patched;
+      const isBlocked = !!e.blocked;
+
+      if (isBlocked) {
+        return {
+          id: `${key}-${i}`,
+          source: e.source,
+          target: e.target,
+          type: "smoothstep",
+          zIndex: 5,
+          label: isPatched ? "🔒 patched" : "blocked",
+          labelBgStyle: {
+            fill: THEME.canvasBg,
+            stroke: "#10b981",
+            strokeWidth: 1,
+            fillOpacity: 0.95,
+            rx: 4,
+            ry: 4,
+          },
+          labelBgPadding: [6, 4],
+          labelStyle: {
+            fill: "#10b981",
+            fontSize: 9,
+            fontFamily: "JetBrains Mono, monospace",
+            fontWeight: 600,
+          },
+          style: {
+            stroke: "#10b981",
+            strokeWidth: 1.5,
+            strokeDasharray: "3 5",
+            opacity: 0.6,
+          },
+        };
+      }
 
       return {
         id: `${key}-${i}`,
@@ -388,7 +469,14 @@ export default function GraphCanvas({
     });
 
     return { rfNodes, rfEdges };
-  }, [graph, selectedNodeId, activePathEdges, compromisedNodes, personaColor]);
+  }, [
+    graph,
+    selectedNodeId,
+    activePathEdges,
+    compromisedNodes,
+    securedNodes,
+    personaColor,
+  ]);
 
   if (!graph) return null;
 

@@ -101,11 +101,15 @@ const ControlIcons = {
 
 export default function AttackPanel({
   result,
+  originalResult,
   playIndex,
   onPlayIndexChange,
   playing,
   onPlayingChange,
   onClose,
+  onPatchHop,
+  patching = false,
+  hasPatched = false,
   personaColor = THEME.accent,
 }) {
   const timerRef = useRef(null);
@@ -244,6 +248,34 @@ export default function AttackPanel({
         </div>
       </div>
 
+      {hasPatched && originalResult && (
+        <div
+          className="anim-fade-in"
+          style={{
+            padding: "10px 20px",
+            background: "rgba(16, 185, 129, 0.08)",
+            borderBottom: `1px solid ${THEME.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontSize: 12,
+          }}
+        >
+          <ControlIcons.Shield />
+          <span style={{ color: "#10b981", fontWeight: 700 }}>
+            Patch verified —
+          </span>
+          <span style={{ color: THEME.text }}>
+            attacker went from reaching{" "}
+            <strong>{originalResult.total_compromised - 1}</strong> nodes to{" "}
+            <strong>{result.total_compromised - 1}</strong>.{" "}
+            {result.total_compromised < originalResult.total_compromised
+              ? `${originalResult.total_compromised - result.total_compromised} asset(s) now unreachable.`
+              : "This fix alone didn't reduce the blast radius — try patching an earlier hop."}
+          </span>
+        </div>
+      )}
+
       {/* Main Sequential Simulation Log Output */}
       <div
         style={{ overflowY: "auto", padding: "6px 0" }}
@@ -358,7 +390,7 @@ export default function AttackPanel({
                     <div style={{ marginTop: 2, color: personaColor }}>
                       <ControlIcons.Shield />
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <strong style={{ color: "#f3f4f6", fontWeight: 600 }}>
                         Recommended Countermeasure:
                       </strong>{" "}
@@ -377,6 +409,34 @@ export default function AttackPanel({
                       >
                         -{h.risk_reduction}% Risk Profile
                       </span>
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPatchHop?.(h);
+                          }}
+                          disabled={patching}
+                          style={{
+                            background: patching ? "#1f2937" : "#10b981",
+                            color: patching ? THEME.textMuted : "#05070c",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "6px 12px",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: patching ? "default" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            letterSpacing: "0.2px",
+                          }}
+                        >
+                          <ControlIcons.Shield />
+                          {patching
+                            ? "Patching & re-verifying…"
+                            : "Patch This Hop & Re-Verify"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

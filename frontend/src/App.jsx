@@ -80,6 +80,8 @@ export default function App() {
   const [graph, setGraph] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [attackResult, setAttackResult] = useState(null);
+  const [originalResult, setOriginalResult] = useState(null);
+  const [patching, setPatching] = useState(false);
   const [playIndex, setPlayIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -137,6 +139,7 @@ export default function App() {
     try {
       const res = await api.simulate(sessionId, nodeId, personaId);
       setAttackResult(res);
+      setOriginalResult(res);
       setPlayIndex(0);
       setPlaying(true);
     } catch (e) {
@@ -161,10 +164,33 @@ export default function App() {
     }
   }
 
+  async function handlePatchHop(hop) {
+    if (!attackResult) return;
+    setPatching(true);
+    setError(null);
+    try {
+      const updatedGraph = await api.patchHop(sessionId, hop.from, hop.to);
+      setGraph(updatedGraph);
+      const verify = await api.simulate(
+        sessionId,
+        attackResult.start,
+        personaId,
+      );
+      setAttackResult(verify);
+      setPlayIndex(0);
+      setPlaying(false);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setPatching(false);
+    }
+  }
+
   function resetToUpload() {
     setGraph(null);
     setSessionId(null);
     setAttackResult(null);
+    setOriginalResult(null);
     setSelectedNodeId(null);
     setStage("upload");
   }
@@ -181,6 +207,22 @@ export default function App() {
     }
     return { activePathEdges: edges, compromisedNodes: nodes };
   }, [attackResult, playIndex]);
+
+  const securedNodes = useMemo(() => {
+    if (!originalResult || !attackResult) return new Set();
+    const currentSet = new Set(attackResult.compromised_order);
+    return new Set(
+      originalResult.compromised_order.filter(
+        (id) => id !== originalResult.start && !currentSet.has(id),
+      ),
+    );
+  }, [originalResult, attackResult]);
+
+  const hasPatched = !!(
+    originalResult &&
+    attackResult &&
+    originalResult !== attackResult
+  );
 
   if (stage === "landing") {
     return (
@@ -326,11 +368,13 @@ export default function App() {
             selectedNodeId={selectedNodeId}
             activePathEdges={activePathEdges}
             compromisedNodes={compromisedNodes}
+            securedNodes={securedNodes}
             personaColor={persona.color}
           />
           <RiskLegend />
           <AttackPanel
             result={attackResult}
+            originalResult={originalResult}
             playIndex={playIndex}
             onPlayIndexChange={(fn) =>
               setPlayIndex(typeof fn === "function" ? fn : fn)
@@ -339,7 +383,13 @@ export default function App() {
             onPlayingChange={(fn) =>
               setPlaying(typeof fn === "function" ? fn : fn)
             }
-            onClose={() => setAttackResult(null)}
+            onClose={() => {
+              setAttackResult(null);
+              setOriginalResult(null);
+            }}
+            onPatchHop={handlePatchHop}
+            patching={patching}
+            hasPatched={hasPatched}
             personaColor={persona.color}
           />
           <ChatPanel
@@ -367,6 +417,7 @@ function RiskLegend() {
     ["High", "#f59e0b"],
     ["Medium", "#efd154"],
     ["Low", "#10b981"],
+    ["Secured", "#10b981"],
   ];
   return (
     <div
