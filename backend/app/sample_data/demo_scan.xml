@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun>
+<host><status state="up"/>
+  <address addr="203.0.113.10" addrtype="ipv4"/>
+  <hostnames><hostname name="web-server-01"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="80"><state state="open"/><service name="http" product="nginx"/></port>
+    <port protocol="tcp" portid="443"><state state="open"/><service name="https" product="nginx"/></port>
+    <port protocol="tcp" portid="22"><state state="open"/><service name="ssh" product="OpenSSH"/></port>
+  </ports>
+  <os><osmatch name="Ubuntu 22.04"/></os>
+</host>
+<host><status state="up"/>
+  <address addr="203.0.113.11" addrtype="ipv4"/>
+  <hostnames><hostname name="api-server-01"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="8080"><state state="open"/><service name="http-alt" product="node"/></port>
+    <port protocol="tcp" portid="22"><state state="open"/><service name="ssh" product="OpenSSH"/></port>
+  </ports>
+  <os><osmatch name="Ubuntu 22.04"/></os>
+</host>
+<host><status state="up"/>
+  <address addr="203.0.113.12" addrtype="ipv4"/>
+  <hostnames><hostname name="redis-cache-01"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="6379"><state state="open"/><service name="redis" product="Redis"/></port>
+  </ports>
+  <os><osmatch name="Debian 12"/></os>
+</host>
+<host><status state="up"/>
+  <address addr="203.0.113.13" addrtype="ipv4"/>
+  <hostnames><hostname name="prod-database-01"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="5432"><state state="open"/><service name="postgresql" product="PostgreSQL"/></port>
+  </ports>
+  <os><osmatch name="Ubuntu 22.04"/></os>
+</host>
+<host><status state="up"/>
+  <address addr="203.0.113.14" addrtype="ipv4"/>
+  <hostnames><hostname name="hr-dashboard-01"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="443"><state state="open"/><service name="https" product="Apache"/></port>
+    <port protocol="tcp" portid="3389"><state state="open"/><service name="ms-wbt-server" product="RDP"/></port>
+  </ports>
+  <os><osmatch name="Windows Server 2019"/></os>
+</host>
+<host><status state="up"/>
+  <address addr="203.0.113.15" addrtype="ipv4"/>
+  <hostnames><hostname name="dev-laptop-07"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="22"><state state="open"/><service name="ssh" product="OpenSSH"/></port>
+  </ports>
+  <os><osmatch name="macOS 14"/></os>
+</host>
+</nmaprun>

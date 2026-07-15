@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nettwin-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: NETTWIN_MODEL
+        value: gpt-4o-mini
+    healthCheckPath: /health
