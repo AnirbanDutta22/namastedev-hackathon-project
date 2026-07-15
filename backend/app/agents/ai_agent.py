@@ -16,7 +16,7 @@ import os
 import json
 from google import genai
 
-MODEL = os.environ.get("NETTWIN_MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("NETTWIN_MODEL", "gemini-3.5-flash")
 _client: genai.Client | None = None
 
 

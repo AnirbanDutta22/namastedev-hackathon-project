@@ -29,7 +29,6 @@ class NetworkGraph:
         edges = [
             {"source": u, "target": v, **d}
             for u, v, d in self.g.edges(data=True)
-            if not d.get("blocked")
         ]
         return {"nodes": nodes, "edges": edges}
 
@@ -51,6 +50,15 @@ class NetworkGraph:
             node_id = params["node_id"]
             if node_id in self.g:
                 self.g.remove_node(node_id)
+        elif action == "patch_hop":
+            # The core of the attack -> patch -> re-verify loop: take exactly
+            # the hop the AI recommended fixing and sever it, then let the
+            # caller re-run simulate_attack() on the same graph to prove
+            # (or disprove) that the fix actually closes the path.
+            source, target = params["source"], params["target"]
+            if self.g.has_edge(source, target):
+                self.g[source][target]["blocked"] = True
+                self.g[source][target]["patched"] = True
 
     _CRITICALITY_RANK = {"critical": 3, "high": 2, "medium": 1, "low": 0}
 
@@ -72,7 +80,9 @@ class NetworkGraph:
         persona = (persona or "red").lower()
 
         if persona == "blue":
-            return lambda x: self.g.nodes[x[0]].get("risk_score", 0)
+            # traversal always sorts with reverse=True, so negate risk_score
+            # here to make "lowest risk first" actually come out first
+            return lambda x: -self.g.nodes[x[0]].get("risk_score", 0)
         if persona == "insider":
             def key(x):
                 target, edge_data = x

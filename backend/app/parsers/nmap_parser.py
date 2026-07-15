@@ -11,7 +11,11 @@ transparent heuristic:
   - A host with a "server-ish" open port (80/443/22/3389/8080/etc.) is
     reachable from the Internet node.
   - Hosts that share a /24 subnet are assumed to be able to reach each other
-    on any port that is open locally (same-subnet lateral movement).
+    on any port that is open locally (same-subnet lateral movement) -- but
+    only "upward" through a rough asset-value tier (workstation -> app
+    server -> data store), not back down. This keeps the inferred graph from
+    degenerating into an unrealistic fully-meshed flat network, and means a
+    single well-chosen patch can genuinely close off a branch of the graph.
   - This is intentionally simple and explained to the user in the UI as
     "inferred trust" edges, not verified firewall rules.
 """
@@ -43,13 +47,26 @@ def classify_device(open_ports: list[dict]) -> str:
     return "Server"
 
 
+PORT_SEVERITY = {
+    23: 32,   # Telnet - plaintext, ancient, terrible
+    445: 30,  # SMB - EternalBlue territory
+    21: 26,   # FTP - plaintext creds
+    3389: 24, # RDP - classic ransomware entry point
+    3306: 20, # MySQL
+    5432: 20, # PostgreSQL
+    27017: 20,  # MongoDB
+    6379: 18, # Redis (often unauthenticated)
+    22: 14,   # SSH - risky if internet-facing, but expected on servers
+}
+
+
 def risk_score(open_ports: list[dict]) -> int:
-    score = 5
+    score = 8
     for p in open_ports:
-        if p["port"] in HIGH_RISK_PORTS:
-            score += 20
+        score += PORT_SEVERITY.get(p["port"], 4)
         if p.get("service", "").lower() in ("ftp", "telnet"):
             score += 15
+    score += max(0, len(open_ports) - 1) * 3  # more open surface = more risk
     return min(score, 100)
 
 
@@ -131,7 +148,16 @@ def infer_edges(nodes: list[dict]) -> list[dict]:
                 "reason": f"Host exposes port(s) {exposed} reachable from the public internet.",
             })
 
-    # Same-subnet lateral movement (naive /24 grouping)
+    # Same-subnet lateral movement (naive /24 grouping), directional by tier:
+    # attackers pivot UP the value chain (workstation -> app tier -> data
+    # tier), not back down. This avoids an unrealistic fully-meshed flat
+    # network and means patching a hop can genuinely close off a branch.
+    TIER = {
+        "Switch": 1, "Workstation": 1,
+        "Server": 2, "Web Server": 2, "API Server": 2,
+        "Redis": 3, "Database": 3,
+    }
+
     def subnet_key(ip: str) -> str | None:
         try:
             return str(ipaddress.ip_network(ip + "/24", strict=False))
@@ -151,15 +177,17 @@ def infer_edges(nodes: list[dict]) -> list[dict]:
             for b in group:
                 if a["id"] == b["id"]:
                     continue
-                # b is reachable from a if b has any open port at all
-                if b["open_ports"]:
-                    exposed = sorted({p["port"] for p in b["open_ports"]})[:5]
-                    edges.append({
-                        "source": a["id"],
-                        "target": b["id"],
-                        "ports": exposed,
-                        "trust": "same-subnet",
-                        "reason": f"{a['label']} and {b['label']} share subnet {key}; lateral access to open ports assumed.",
-                    })
+                if not b["open_ports"]:
+                    continue
+                if TIER.get(b["type"], 2) < TIER.get(a["type"], 2):
+                    continue  # no reverse pivots down the value chain
+                exposed = sorted({p["port"] for p in b["open_ports"]})[:5]
+                edges.append({
+                    "source": a["id"],
+                    "target": b["id"],
+                    "ports": exposed,
+                    "trust": "same-subnet",
+                    "reason": f"{a['label']} and {b['label']} share subnet {key}; lateral access to open ports assumed.",
+                })
 
     return edges

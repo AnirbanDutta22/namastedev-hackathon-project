@@ -14,8 +14,7 @@
   <address addr="203.0.113.11" addrtype="ipv4"/>
   <hostnames><hostname name="api-server-01"/></hostnames>
   <ports>
-    <port protocol="tcp" portid="8080"><state state="open"/><service name="http-alt" product="node"/></port>
-    <port protocol="tcp" portid="22"><state state="open"/><service name="ssh" product="OpenSSH"/></port>
+    <port protocol="tcp" portid="8000"><state state="open"/><service name="http-alt" product="node"/></port>
   </ports>
   <os><osmatch name="Ubuntu 22.04"/></os>
 </host>
@@ -36,20 +35,20 @@
   <os><osmatch name="Ubuntu 22.04"/></os>
 </host>
 <host><status state="up"/>
-  <address addr="203.0.113.14" addrtype="ipv4"/>
+  <address addr="203.0.113.15" addrtype="ipv4"/>
+  <hostnames><hostname name="dev-laptop-07"/></hostnames>
+  <ports>
+    <port protocol="tcp" portid="5900"><state state="open"/><service name="vnc" product="RealVNC"/></port>
+  </ports>
+  <os><osmatch name="macOS 14"/></os>
+</host>
+<host><status state="up"/>
+  <address addr="198.51.100.20" addrtype="ipv4"/>
   <hostnames><hostname name="hr-dashboard-01"/></hostnames>
   <ports>
     <port protocol="tcp" portid="443"><state state="open"/><service name="https" product="Apache"/></port>
     <port protocol="tcp" portid="3389"><state state="open"/><service name="ms-wbt-server" product="RDP"/></port>
   </ports>
   <os><osmatch name="Windows Server 2019"/></os>
-</host>
-<host><status state="up"/>
-  <address addr="203.0.113.15" addrtype="ipv4"/>
-  <hostnames><hostname name="dev-laptop-07"/></hostnames>
-  <ports>
-    <port protocol="tcp" portid="22"><state state="open"/><service name="ssh" product="OpenSSH"/></port>
-  </ports>
-  <os><osmatch name="macOS 14"/></os>
 </host>
 </nmaprun>
