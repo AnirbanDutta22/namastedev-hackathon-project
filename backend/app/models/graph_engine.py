@@ -52,15 +52,48 @@ class NetworkGraph:
             if node_id in self.g:
                 self.g.remove_node(node_id)
 
-    def simulate_attack(self, start_node: str) -> dict[str, Any]:
+    _CRITICALITY_RANK = {"critical": 3, "high": 2, "medium": 1, "low": 0}
+
+    def _persona_sort_key(self, persona: str):
         """
-        BFS traversal from start_node over non-blocked edges, ranked by
-        target risk_score (attacker prefers highest-value next hop).
+        Returns a sort key function used to order candidate next-hops for a
+        given attacker persona. Three doctrines, three different traversal
+        orders over the *same* graph:
+
+        - red     ("The Breacher"): smash-and-grab -> highest risk_score first,
+                    i.e. go straight for the loudest, most valuable target.
+        - blue    ("The Ghost"): low-and-slow -> lowest risk_score first, i.e.
+                    prefer quiet, unremarkable hops and save noisy targets for last.
+        - insider ("The Mole"): already trusted -> prioritizes asset criticality
+                    (the mole knows exactly where the crown jewels are) and only
+                    then risk_score, and mildly prefers "trusted" edges since an
+                    insider already has the relevant credentials.
+        """
+        persona = (persona or "red").lower()
+
+        if persona == "blue":
+            return lambda x: self.g.nodes[x[0]].get("risk_score", 0)
+        if persona == "insider":
+            def key(x):
+                target, edge_data = x
+                crit = self.g.nodes[target].get("criticality", "low")
+                crit_rank = self._CRITICALITY_RANK.get(str(crit).lower(), 0)
+                trust_bonus = 1 if edge_data.get("trust") == "trusted" else 0
+                return (crit_rank, trust_bonus, self.g.nodes[target].get("risk_score", 0))
+            return key
+        # default: red
+        return lambda x: self.g.nodes[x[0]].get("risk_score", 0)
+
+    def simulate_attack(self, start_node: str, persona: str = "red") -> dict[str, Any]:
+        """
+        BFS traversal from start_node over non-blocked edges, ranked according
+        to the chosen attacker persona's doctrine (see _persona_sort_key).
         Returns an ordered list of hops with hop metadata for narration.
         """
         if start_node not in self.g:
             raise ValueError(f"Unknown node: {start_node}")
 
+        sort_key = self._persona_sort_key(persona)
         visited = {start_node}
         order = [start_node]
         hops = []
@@ -72,8 +105,8 @@ class NetworkGraph:
                 (v, d) for u, v, d in self.g.out_edges(current, data=True)
                 if not d.get("blocked") and v not in visited
             ]
-            # attacker prioritizes highest-risk / highest-value targets first
-            neighbors.sort(key=lambda x: self.g.nodes[x[0]].get("risk_score", 0), reverse=True)
+            # attacker persona decides which next hop is most attractive
+            neighbors.sort(key=sort_key, reverse=True)
 
             for target, edge_data in neighbors:
                 visited.add(target)

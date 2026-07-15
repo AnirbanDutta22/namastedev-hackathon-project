@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from app.parsers.nmap_parser import parse_nmap_xml
 from app.models.graph_engine import NetworkGraph
-from app.agents.ai_agent import narrate_attack_path, answer_question
+from app.agents.ai_agent import narrate_attack_path, answer_question, PERSONAS
 
 load_dotenv()
 
@@ -34,6 +34,11 @@ def _demo_graph_data() -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/personas")
+def personas():
+    return {"personas": [{"id": k, **v} for k, v in PERSONAS.items()]}
 
 
 @app.post("/api/upload")
@@ -76,10 +81,12 @@ def get_graph(session_id: str):
 def simulate(session_id: str, body: dict):
     graph = _get_graph(session_id)
     start_node = body.get("start_node")
+    persona = body.get("persona", "red")
     if not start_node:
         raise HTTPException(400, "start_node is required")
-    result = graph.simulate_attack(start_node)
-    narration = narrate_attack_path(result["hops"])
+    result = graph.simulate_attack(start_node, persona=persona)
+    result["persona"] = persona
+    narration = narrate_attack_path(result["hops"], persona=persona)
     for hop, note in zip(result["hops"], narration):
         hop.update({
             "explanation": note.get("explanation"),
@@ -104,11 +111,12 @@ def scenario(session_id: str, req: ScenarioRequest):
 
 class AskRequest(BaseModel):
     question: str
+    persona: str = "red"
 
 
 @app.post("/api/ask/{session_id}")
 def ask(session_id: str, req: AskRequest):
     graph = _get_graph(session_id)
     context = graph.context_for_llm()
-    answer = answer_question(req.question, context)
+    answer = answer_question(req.question, context, persona=req.persona)
     return {"answer": answer}
