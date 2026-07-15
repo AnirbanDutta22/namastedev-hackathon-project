@@ -1,0 +1,55 @@
+/* NetTwin AI design tokens
+   Palette: deep charcoal-blue console, amber = danger/attack, teal = safe/trust
+   Type: Inter (UI), JetBrains Mono (data: IPs, ports, scores)
+   Signature: animated signal pulse traveling along the active attack path edge
+*/
+:root {
+  --bg: #0B0F16;
+  --panel: #121826;
+  --panel-2: #182031;
+  --border: #232C3F;
+  --text: #E7ECF3;
+  --text-muted: #7C8798;
+  --amber: #FFB454;
+  --amber-dim: #4A3A22;
+  --teal: #4FD1C5;
+  --red: #FF6B6B;
+  --orange: #FF9F5B;
+  --yellow: #F5D76E;
+  --green: #55D68A;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+::selection { background: var(--amber); color: #1a1400; }
+
+.mono { font-family: var(--font-mono); }
+
+.scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+a { color: var(--teal); }
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
