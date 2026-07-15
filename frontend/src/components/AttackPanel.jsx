@@ -106,6 +106,7 @@ export default function AttackPanel({
   playing,
   onPlayingChange,
   onClose,
+  personaColor = THEME.accent,
 }) {
   const timerRef = useRef(null);
 
@@ -171,9 +172,9 @@ export default function AttackPanel({
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                backgroundColor: THEME.danger,
+                backgroundColor: personaColor,
                 display: "inline-block",
-                animate: "pulse 2s infinite",
+                animation: "pulseDot 1.4s ease-in-out infinite",
               }}
             />
             Simulation Engine Output: {result.total_compromised} Nodes Exposed
@@ -200,8 +201,9 @@ export default function AttackPanel({
             onClick={() => onPlayingChange((p) => !p)}
             style={{
               ...btnStyle,
-              background: playing ? "#1f2937" : THEME.accent,
-              color: "#ffffff",
+              background: playing ? "#1f2937" : personaColor,
+              color: playing ? THEME.text : "#05070c",
+              fontWeight: 700,
               borderColor: playing ? THEME.borderAccent : "transparent",
             }}
           >
@@ -261,8 +263,8 @@ export default function AttackPanel({
                 gap: 16,
                 padding: "12px 20px",
                 cursor: "pointer",
-                background: active ? "rgba(59, 130, 246, 0.04)" : "transparent",
-                borderLeft: `3px solid ${active ? THEME.accent : done ? THEME.borderAccent : "transparent"}`,
+                background: active ? `${personaColor}0d` : "transparent",
+                borderLeft: `3px solid ${active ? personaColor : done ? THEME.borderAccent : "transparent"}`,
                 borderBottom: `1px solid rgba(31, 41, 55, 0.4)`,
                 opacity: i > playIndex ? 0.3 : 1,
                 transition: "all 0.15s ease",
@@ -343,17 +345,17 @@ export default function AttackPanel({
                     style={{
                       marginTop: 10,
                       fontSize: 12,
-                      background: "#111c2a",
+                      background: `${personaColor}0f`,
                       borderRadius: 4,
                       padding: "10px 14px",
-                      color: "#93c5fd",
-                      border: "1px solid #1e3a8a",
+                      color: THEME.text,
+                      border: `1px solid ${personaColor}44`,
                       display: "flex",
                       alignItems: "flex-start",
                       gap: 8,
                     }}
                   >
-                    <div style={{ marginTop: 2, color: THEME.accent }}>
+                    <div style={{ marginTop: 2, color: personaColor }}>
                       <ControlIcons.Shield />
                     </div>
                     <div>

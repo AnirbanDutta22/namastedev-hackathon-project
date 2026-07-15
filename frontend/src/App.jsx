@@ -1,26 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GraphCanvas from "./components/GraphCanvas";
 import DeviceSidebar from "./components/DeviceSidebar";
 import AttackPanel from "./components/AttackPanel";
 import ChatPanel from "./components/ChatPanel";
+import Landing from "./components/Landing";
+import CharacterSelect from "./components/CharacterSelect";
+import UploadScreen from "./components/UploadScreen";
+import Loader from "./components/Loader";
+import { getPersona } from "./lib/personas";
 import { api } from "./lib/api";
 
-// Design Tokens
-const THEME = {
-  bg: "#090d16",
-  panel: "#111827",
-  panelHeader: "#0d131f",
-  border: "#1f2937",
-  borderAccent: "#374151",
-  text: "#f3f4f6",
-  textMuted: "#9ca3af",
-  accent: "#3b82f6", // Enterprise Blue
-  danger: "#ef4444",
-  warning: "#f59e0b",
-  success: "#10b981",
-};
-
-// Inline SVGs for clean, professional iconography
 const Icons = {
   Logo: () => (
     <svg
@@ -28,7 +17,7 @@ const Icons = {
       height="18"
       viewBox="0 0 24 24"
       fill="none"
-      stroke={THEME.accent}
+      stroke="var(--signal)"
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -64,10 +53,10 @@ const Icons = {
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
     </svg>
   ),
-  Upload: () => (
+  Swap: () => (
     <svg
-      width="16"
-      height="16"
+      width="14"
+      height="14"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -75,26 +64,18 @@ const Icons = {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-    </svg>
-  ),
-  Demo: () => (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="5 3 19 12 5 21 5 3" />
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
     </svg>
   ),
 };
 
 export default function App() {
+  // stage: 'landing' | 'select' | 'upload' | 'console'
+  const [stage, setStage] = useState("landing");
+  const [personaId, setPersonaId] = useState("red");
   const [sessionId, setSessionId] = useState(null);
   const [graph, setGraph] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
@@ -104,6 +85,14 @@ export default function App() {
   const [chatOpen, setChatOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const persona = getPersona(personaId);
+
+  // Drive the whole app's accent color from the chosen persona via a data
+  // attribute on <body> (see index.css :root / body[data-persona] tokens).
+  useEffect(() => {
+    document.body.setAttribute("data-persona", personaId);
+  }, [personaId]);
 
   const selectedNode = useMemo(
     () => graph?.nodes.find((n) => n.id === selectedNodeId) || null,
@@ -118,6 +107,7 @@ export default function App() {
       setSessionId(res.session_id);
       setGraph(res.graph);
       setAttackResult(null);
+      setStage("console");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -133,6 +123,7 @@ export default function App() {
       setSessionId(res.session_id);
       setGraph(res.graph);
       setAttackResult(null);
+      setStage("console");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -144,7 +135,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.simulate(sessionId, nodeId);
+      const res = await api.simulate(sessionId, nodeId, personaId);
       setAttackResult(res);
       setPlayIndex(0);
       setPlaying(true);
@@ -170,6 +161,14 @@ export default function App() {
     }
   }
 
+  function resetToUpload() {
+    setGraph(null);
+    setSessionId(null);
+    setAttackResult(null);
+    setSelectedNodeId(null);
+    setStage("upload");
+  }
+
   const { activePathEdges, compromisedNodes } = useMemo(() => {
     const edges = new Set();
     const nodes = new Set();
@@ -183,14 +182,43 @@ export default function App() {
     return { activePathEdges: edges, compromisedNodes: nodes };
   }, [attackResult, playIndex]);
 
-  if (!graph) {
+  if (stage === "landing") {
     return (
-      <LandingScreen
-        onLoadDemo={handleLoadDemo}
-        onUpload={handleUpload}
-        loading={loading}
-        error={error}
-      />
+      <>
+        <div className="grain" />
+        <Landing onEnter={() => setStage("select")} />
+      </>
+    );
+  }
+
+  if (stage === "select") {
+    return (
+      <>
+        <div className="grain" />
+        <CharacterSelect
+          onBack={() => setStage("landing")}
+          onSelect={(id) => {
+            setPersonaId(id);
+            setStage("upload");
+          }}
+        />
+      </>
+    );
+  }
+
+  if (stage === "upload" || !graph) {
+    return (
+      <>
+        <div className="grain" />
+        <UploadScreen
+          personaId={personaId}
+          onBack={() => setStage("select")}
+          onLoadDemo={handleLoadDemo}
+          onUpload={handleUpload}
+          loading={loading}
+          error={error}
+        />
+      </>
     );
   }
 
@@ -200,35 +228,63 @@ export default function App() {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: THEME.bg,
-        color: THEME.text,
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        backgroundColor: "var(--bg)",
+        color: "var(--text)",
+        fontFamily: "var(--font-ui)",
       }}
     >
+      <div className="grain" />
       <header
         style={{
-          height: 52,
+          height: 54,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 20px",
-          borderBottom: `1px solid ${THEME.border}`,
-          background: THEME.panelHeader,
+          borderBottom: "1px solid var(--border)",
+          background: "var(--bg-1)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Icons.Logo />
           <span
-            style={{ fontWeight: 600, fontSize: 14, letterSpacing: "0.2px" }}
+            className="display"
+            style={{ fontWeight: 600, fontSize: 14, letterSpacing: "0.03em" }}
           >
             NetTwin Console
           </span>
           <div
-            style={{ height: 16, width: 1, backgroundColor: THEME.border }}
+            style={{ height: 16, width: 1, backgroundColor: "var(--border)" }}
           />
           <span
             className="mono"
-            style={{ fontSize: 11, color: THEME.textMuted }}
+            style={{
+              fontSize: 10.5,
+              color: persona.color,
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: persona.color,
+                display: "inline-block",
+              }}
+            />
+            {persona.name.toUpperCase()} · {persona.callsign}
+          </span>
+          <div
+            style={{ height: 16, width: 1, backgroundColor: "var(--border)" }}
+          />
+          <span
+            className="mono"
+            style={{ fontSize: 11, color: "var(--text-muted)" }}
           >
             {graph.nodes.length - 1} nodes • {graph.edges.length} connections
             detected
@@ -236,16 +292,12 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => setChatOpen((v) => !v)} style={headerBtn}>
-            <Icons.Chat /> AI Copilot
+            <Icons.Chat /> Ask {persona.name}
           </button>
-          <button
-            onClick={() => {
-              setGraph(null);
-              setSessionId(null);
-              setAttackResult(null);
-            }}
-            style={headerBtn}
-          >
+          <button onClick={() => setStage("select")} style={headerBtn}>
+            <Icons.Swap /> Change Attacker
+          </button>
+          <button onClick={resetToUpload} style={headerBtn}>
             <Icons.Refresh /> Reset Session
           </button>
         </div>
@@ -255,24 +307,26 @@ export default function App() {
         <div
           style={{
             width: 320,
-            borderRight: `1px solid ${THEME.border}`,
-            background: THEME.panel,
+            borderRight: "1px solid var(--border)",
+            background: "var(--panel)",
           }}
         >
           <DeviceSidebar
             node={selectedNode}
             onSimulate={handleSimulate}
             onIsolate={handleIsolate}
+            personaColor={persona.color}
           />
         </div>
 
-        <div style={{ flex: 1, position: "relative", background: "#0a0f1d" }}>
+        <div style={{ flex: 1, position: "relative", background: "#070a11" }}>
           <GraphCanvas
             graph={graph}
             onNodeClick={setSelectedNodeId}
             selectedNodeId={selectedNodeId}
             activePathEdges={activePathEdges}
             compromisedNodes={compromisedNodes}
+            personaColor={persona.color}
           />
           <RiskLegend />
           <AttackPanel
@@ -286,12 +340,21 @@ export default function App() {
               setPlaying(typeof fn === "function" ? fn : fn)
             }
             onClose={() => setAttackResult(null)}
+            personaColor={persona.color}
           />
           <ChatPanel
             sessionId={sessionId}
             open={chatOpen}
             onClose={() => setChatOpen(false)}
+            persona={persona}
           />
+          {loading && !attackResult && (
+            <Loader
+              fullscreen
+              color={persona.color}
+              messages={["Re-scoring exposure…", "Applying scenario…"]}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -300,10 +363,10 @@ export default function App() {
 
 function RiskLegend() {
   const items = [
-    ["Critical", THEME.danger],
-    ["High", THEME.warning],
+    ["Critical", "#ef4444"],
+    ["High", "#f59e0b"],
     ["Medium", "#efd154"],
-    ["Low", THEME.success],
+    ["Low", "#10b981"],
   ];
   return (
     <div
@@ -311,9 +374,9 @@ function RiskLegend() {
         position: "absolute",
         top: 20,
         left: 20,
-        background: "rgba(17, 24, 39, 0.9)",
+        background: "rgba(13, 17, 25, 0.85)",
         backdropFilter: "blur(8px)",
-        border: `1px solid ${THEME.borderAccent}`,
+        border: "1px solid var(--border)",
         borderRadius: 6,
         padding: "8px 12px",
         display: "flex",
@@ -336,138 +399,17 @@ function RiskLegend() {
               display: "inline-block",
             }}
           />
-          <span style={{ color: THEME.textMuted }}>{label}</span>
+          <span style={{ color: "var(--text-muted)" }}>{label}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function LandingScreen({ onLoadDemo, onUpload, loading, error }) {
-  return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#070a13",
-        backgroundImage:
-          "radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
-        backgroundSize: "24px 24px",
-        textAlign: "center",
-        padding: 24,
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        color: THEME.text,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          color: THEME.accent,
-          fontWeight: 700,
-          letterSpacing: "1.5px",
-          textTransform: "uppercase",
-          marginBottom: 12,
-        }}
-      >
-        Attack Surface Topology Engine
-      </div>
-      <h1
-        style={{
-          fontSize: 36,
-          fontWeight: 700,
-          margin: "0 0 12px",
-          maxWidth: 680,
-          lineHeight: 1.2,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Trace Lateral Propagation Vector Sequences
-      </h1>
-      <p
-        style={{
-          color: THEME.textMuted,
-          maxWidth: 540,
-          marginBottom: 36,
-          fontSize: 14,
-          lineHeight: 1.5,
-        }}
-      >
-        Parse standard Nmap XML data to construct precise node graphs. Simulate
-        realistic attacker movement and horizontal movement paths across
-        segmented subnets.
-      </p>
-
-      <div style={{ display: "flex", gap: 12 }}>
-        <label
-          style={{
-            background: THEME.accent,
-            color: "#ffffff",
-            fontWeight: 600,
-            borderRadius: 6,
-            padding: "10px 18px",
-            cursor: "pointer",
-            fontSize: 13,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            border: "1px solid transparent",
-            transition: "background 0.2s",
-          }}
-        >
-          <Icons.Upload /> Upload Nmap Scan (XML)
-          <input
-            type="file"
-            accept=".xml"
-            style={{ display: "none" }}
-            onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])}
-          />
-        </label>
-        <button
-          onClick={onLoadDemo}
-          style={{
-            background: "transparent",
-            border: `1px solid ${THEME.borderAccent}`,
-            color: THEME.text,
-            fontWeight: 600,
-            borderRadius: 6,
-            padding: "10px 18px",
-            fontSize: 13,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Icons.Demo /> Run Simulation Demo
-        </button>
-      </div>
-
-      {loading && (
-        <div
-          style={{ marginTop: 24, color: THEME.textMuted, fontSize: 12 }}
-          className="mono"
-        >
-          Initializing secure environment parser...
-        </div>
-      )}
-      {error && (
-        <div
-          style={{ marginTop: 24, color: THEME.danger, fontSize: 12 }}
-          className="mono"
-        >
-          Error: {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
 const headerBtn = {
-  background: "#1f2937",
-  border: `1px solid ${THEME.borderAccent}`,
-  color: THEME.text,
+  background: "var(--panel-2)",
+  border: "1px solid var(--border)",
+  color: "var(--text)",
   borderRadius: 4,
   padding: "6px 12px",
   fontSize: 12,

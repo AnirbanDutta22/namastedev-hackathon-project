@@ -31,7 +31,12 @@ function getRiskTheme(score) {
   return BADGE_COLORS.Low;
 }
 
-export default function DeviceSidebar({ node, onSimulate, onIsolate }) {
+export default function DeviceSidebar({
+  node,
+  onSimulate,
+  onIsolate,
+  personaColor = "#ef4444",
+}) {
   if (!node) {
     return (
       <div
@@ -246,20 +251,20 @@ export default function DeviceSidebar({ node, onSimulate, onIsolate }) {
         <button
           onClick={() => onSimulate(node.id)}
           style={{
-            background: "#ef4444",
-            color: "#ffffff",
+            background: personaColor,
+            color: "#05070c",
             border: "none",
             borderRadius: 4,
             padding: "10px 14px",
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: 12,
             cursor: "pointer",
-            transition: "background 0.15s",
+            transition: "filter 0.15s",
             textTransform: "uppercase",
             letterSpacing: "0.2px",
           }}
-          onMouseOver={(e) => (e.target.style.background = "#dc2626")}
-          onMouseOut={(e) => (e.target.style.background = "#ef4444")}
+          onMouseOver={(e) => (e.target.style.filter = "brightness(1.12)")}
+          onMouseOut={(e) => (e.target.style.filter = "none")}
         >
           Simulate Attack Sequence
         </button>

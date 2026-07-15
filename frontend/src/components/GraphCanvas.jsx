@@ -6,18 +6,16 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow";
 
-// Enterprise Theme Tokens
 const THEME = {
-  canvasBg: "#070a13",
-  nodeBg: "#111827",
-  border: "#1f2937",
-  borderAccent: "#374151",
-  text: "#f3f4f6",
-  textMuted: "#9ca3af",
-  accent: "#3b82f6", // Enterprise Blue
-  danger: "#ef4444", // Threat Red
-  warning: "#f59e0b", // Alert Amber
-  success: "#10b981", // Secure Green
+  canvasBg: "#070a11",
+  nodeBg: "#0d1119",
+  border: "#1c222f",
+  borderAccent: "#2a3242",
+  text: "#edf1f7",
+  textMuted: "#7c8698",
+  danger: "#ef4444",
+  warning: "#f59e0b",
+  success: "#10b981",
 };
 
 const NodeIcons = {
@@ -181,7 +179,6 @@ function layoutNodes(nodes) {
   layers.forEach((layer, li) => {
     const group = grouped[layer] || [];
     group.forEach((n, i) => {
-      // Extended spatial separation to clear linear stacking
       positioned.push({ ...n, x: 80 + li * 310, y: 120 + i * 200 });
     });
   });
@@ -194,12 +191,11 @@ export default function GraphCanvas({
   selectedNodeId,
   activePathEdges = new Set(),
   compromisedNodes = new Set(),
+  personaColor = "#ff3b4e",
 }) {
   const { rfNodes, rfEdges } = useMemo(() => {
     if (!graph) return { rfNodes: [], rfEdges: [] };
     const positioned = layoutNodes(graph.nodes);
-
-    // Check if an attack sequence simulation is currently rendered active
     const isAnySimulationActive = activePathEdges.size > 0;
 
     const rfNodes = positioned.map((n) => {
@@ -207,15 +203,13 @@ export default function GraphCanvas({
       const isSelected = n.id === selectedNodeId;
 
       const baseRiskColor =
-        n.id === "internet" ? THEME.accent : riskColor(n.risk_score || 0);
+        n.id === "internet" ? personaColor : riskColor(n.risk_score || 0);
       const nodeBorderColor = isCompromised
-        ? THEME.danger
+        ? personaColor
         : isSelected
-          ? THEME.accent
+          ? personaColor
           : baseRiskColor;
-      const nodeBgColor = isCompromised
-        ? "rgba(239, 68, 68, 0.12)"
-        : THEME.nodeBg;
+      const nodeBgColor = isCompromised ? `${personaColor}1f` : THEME.nodeBg;
 
       const IconComponent =
         NodeIcons[n.type] ||
@@ -235,20 +229,37 @@ export default function GraphCanvas({
       return {
         id: n.id,
         position: { x: n.x, y: n.y },
-        // Elevate compromised or selected nodes structurally
         zIndex: isCompromised ? 110 : isSelected ? 120 : 10,
         data: {
           label: (
             <div
-              style={{ textAlign: "left", fontFamily: "system-ui, sans-serif" }}
+              style={{
+                textAlign: "left",
+                fontFamily: "var(--font-ui)",
+                position: "relative",
+                overflow: "hidden",
+              }}
             >
+              {isCompromised && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    height: "40%",
+                    background: `linear-gradient(to bottom, transparent, ${personaColor}33, transparent)`,
+                    animation: "scanSweep 2.2s linear infinite",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
                   marginBottom: 6,
-                  color: isCompromised ? THEME.danger : THEME.textMuted,
+                  color: isCompromised ? personaColor : THEME.textMuted,
                 }}
               >
                 <IconComponent />
@@ -262,6 +273,18 @@ export default function GraphCanvas({
                 >
                   {n.type}
                 </span>
+                {isCompromised && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: personaColor,
+                      animation: "pulseDot 1s ease-in-out infinite",
+                    }}
+                  />
+                )}
               </div>
               <div
                 style={{
@@ -296,17 +319,17 @@ export default function GraphCanvas({
           borderColor: nodeBorderColor,
           borderWidth: isCompromised || isSelected ? "2px" : "1px",
           borderStyle: "solid",
-          borderRadius: 6,
+          borderRadius: 7,
           padding: "12px 14px",
           color: THEME.text,
           width: 190,
-          opacity: isCompromised || !isAnySimulationActive ? 1 : 0.4, // Subtly step back safe nodes during simulation
+          opacity: isCompromised || !isAnySimulationActive ? 1 : 0.35,
           boxShadow: isCompromised
-            ? "0 0 22px rgba(239, 68, 68, 0.45), inset 0 0 6px rgba(239, 68, 68, 0.15)"
+            ? `0 0 26px ${personaColor}55, inset 0 0 8px ${personaColor}22`
             : isSelected
-              ? `0 0 0 3px rgba(59, 130, 246, 0.3)`
+              ? `0 0 0 3px ${personaColor}44`
               : "0 4px 6px -1px rgba(0, 0, 0, 0.4)",
-          transition: "all 0.2s ease-in-out",
+          transition: "all 0.25s ease-in-out",
         },
       };
     });
@@ -320,16 +343,14 @@ export default function GraphCanvas({
         source: e.source,
         target: e.target,
         type: "smoothstep",
-        borderRadius: 8,
-        animated: active,
-        // Force the exploit line to pop above parallel overlapping paths
+        borderRadius: 10,
+        animated: false,
         zIndex: active ? 2000 : 10,
-        // Hide port configurations text tags on unsimulated background lanes
         label:
           isAnySimulationActive && !active ? "" : e.ports?.join(", ") || "",
         labelBgStyle: {
           fill: THEME.canvasBg,
-          stroke: active ? THEME.danger : THEME.borderAccent,
+          stroke: active ? personaColor : THEME.borderAccent,
           strokeWidth: 1,
           fillOpacity: 0.95,
           rx: 4,
@@ -337,36 +358,37 @@ export default function GraphCanvas({
         },
         labelBgPadding: [6, 4],
         labelStyle: {
-          fill: active ? THEME.danger : THEME.textMuted,
+          fill: active ? personaColor : THEME.textMuted,
           fontSize: 9,
           fontFamily: "JetBrains Mono, monospace",
           fontWeight: 600,
         },
         style: {
           stroke: active
-            ? THEME.danger
+            ? personaColor
             : e.trust === "untrusted"
               ? "#4b5563"
               : "#1f2937",
-          strokeWidth: active ? 3.5 : 1.25, // Thicker structural line for the active exploit vector
-          // Drastically fade out static edges down to 12% opacity to let active paths glow clearly
-          opacity: active ? 1 : isAnySimulationActive ? 0.12 : 1,
-          transition: "all 0.2s ease-in-out",
+          strokeWidth: active ? 3 : 1.25,
+          strokeDasharray: active ? "6 6" : undefined,
+          animation: active ? "dashFlow 1.1s linear infinite" : undefined,
+          opacity: active ? 1 : isAnySimulationActive ? 0.1 : 1,
+          filter: active ? `drop-shadow(0 0 6px ${personaColor}aa)` : undefined,
+          transition: "opacity 0.25s ease-in-out, stroke 0.25s ease-in-out",
         },
-        // Enforce hard directional vector arrow pointing directly to the target node
         markerEnd: active
           ? {
               type: MarkerType.ArrowClosed,
-              width: 14,
-              height: 14,
-              color: THEME.danger,
+              width: 15,
+              height: 15,
+              color: personaColor,
             }
           : undefined,
       };
     });
 
     return { rfNodes, rfEdges };
-  }, [graph, selectedNodeId, activePathEdges, compromisedNodes]);
+  }, [graph, selectedNodeId, activePathEdges, compromisedNodes, personaColor]);
 
   if (!graph) return null;
 
@@ -400,7 +422,7 @@ export default function GraphCanvas({
             background: THEME.nodeBg,
             border: `1px solid ${THEME.border}`,
           }}
-          nodeColor={(node) => node.style?.borderColor || THEME.accent}
+          nodeColor={(node) => node.style?.borderColor || personaColor}
           maskColor="rgba(7, 10, 19, 0.75)"
         />
       </ReactFlow>
