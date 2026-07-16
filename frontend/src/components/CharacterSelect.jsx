@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { PERSONAS } from "../lib/personas";
 import BackgroundGraph from "./BackgroundGraph";
+import AttackerAvatar3D from "./AttackerAvatar3D";
+import TiltCard from "./TiltCard";
+import "./characterSelect3d.css";
 
 export default function CharacterSelect({ onSelect, onBack }) {
   const [hovered, setHovered] = useState(null);
@@ -105,7 +108,7 @@ export default function CharacterSelect({ onSelect, onBack }) {
           className="display anim-fade-up"
           style={{
             fontSize: "clamp(28px, 4vw, 44px)",
-            margin: "0 0 12px",
+            margin: "0 0 8px",
             fontWeight: 700,
             textAlign: "center",
             animationDelay: "0.06s",
@@ -121,7 +124,7 @@ export default function CharacterSelect({ onSelect, onBack }) {
             maxWidth: 520,
             textAlign: "center",
             lineHeight: 1.6,
-            marginBottom: 48,
+            marginBottom: 28,
             animationDelay: "0.12s",
           }}
         >
@@ -132,149 +135,141 @@ export default function CharacterSelect({ onSelect, onBack }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 20,
+            gridTemplateColumns: "repeat(auto-fit, minmax(272px, 1fr))",
+            gap: 28,
             width: "100%",
-            maxWidth: 940,
+            maxWidth: 980,
           }}
         >
           {PERSONAS.map((p, i) => {
             const isSelected = selected === p.id;
+            const isActive = active === p.id;
+            const isDimmed = Boolean(active) && !isActive;
             return (
               <div
                 key={p.id}
                 className="anim-fade-up"
-                onMouseEnter={() => setHovered(p.id)}
-                onMouseLeave={() => setHovered(null)}
-                onClick={() => setSelected(p.id)}
-                style={{
-                  animationDelay: `${0.18 + i * 0.08}s`,
-                  cursor: "pointer",
-                  position: "relative",
-                  padding: "28px 24px",
-                  borderRadius: 10,
-                  background: isSelected ? `${p.color}14` : "var(--panel)",
-                  border: `1px solid ${isSelected ? p.color : "var(--border)"}`,
-                  transition:
-                    "transform 0.3s var(--ease-out), border-color 0.25s, background 0.25s, box-shadow 0.3s",
-                  transform: isSelected ? "translateY(-6px)" : "translateY(0)",
-                  boxShadow: isSelected
-                    ? `0 16px 40px -14px ${p.color}55`
-                    : "none",
-                }}
+                style={{ animationDelay: `${0.18 + i * 0.08}s` }}
               >
-                <div
+                <TiltCard
+                  personaId={p.id}
+                  isActive={isSelected}
+                  isDimmed={isDimmed}
+                  onEnter={() => setHovered(p.id)}
+                  onLeave={() => setHovered(null)}
+                  onClick={() => setSelected(p.id)}
+                  floatDelay={i * 0.5}
                   style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: `${p.color}1a`,
-                    border: `1px solid ${p.color}55`,
-                    color: p.color,
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 700,
-                    fontSize: 18,
-                    marginBottom: 18,
+                    padding: "10px 24px 28px",
+                    background: isSelected ? `${p.color}14` : "var(--panel)",
+                    border: `1px solid ${isSelected ? p.color : "var(--border)"}`,
+                    boxShadow: isSelected
+                      ? `0 16px 40px -14px ${p.color}55`
+                      : "0 8px 24px -16px rgba(0,0,0,0.6)",
+                    textAlign: "center",
                   }}
                 >
-                  {p.glyph}
-                </div>
+                  <div className="avatar3d-stage">
+                    <AttackerAvatar3D
+                      personaId={p.id}
+                      color={p.color}
+                      active={isActive || isSelected}
+                    />
+                  </div>
 
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 10,
-                    color: p.color,
-                    fontWeight: 700,
-                    letterSpacing: "0.14em",
-                    marginBottom: 6,
-                  }}
-                >
-                  {p.callsign}
-                </div>
-                <div
-                  className="display"
-                  style={{ fontSize: 21, fontWeight: 600, marginBottom: 4 }}
-                >
-                  {p.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    color: "var(--text-muted)",
-                    fontWeight: 600,
-                    marginBottom: 14,
-                  }}
-                >
-                  {p.tagline}
-                </div>
-                <p
-                  style={{
-                    fontSize: 12.5,
-                    color: "var(--text-dim)",
-                    lineHeight: 1.6,
-                    margin: 0,
-                    minHeight: 78,
-                  }}
-                >
-                  {p.doctrine}
-                </p>
-                <div
-                  style={{
-                    marginTop: 16,
-                    paddingTop: 14,
-                    borderTop: "1px solid var(--border-soft)",
-                    fontSize: 11,
-                    color: p.color,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      background: p.color,
-                      display: "inline-block",
-                    }}
-                  />
-                  {p.trait}
-                </div>
-
-                {isSelected && (
                   <div
+                    className="mono"
                     style={{
-                      position: "absolute",
-                      top: 14,
-                      right: 14,
-                      width: 20,
-                      height: 20,
-                      borderRadius: "50%",
-                      background: p.color,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      fontSize: 10,
+                      color: p.color,
+                      fontWeight: 700,
+                      letterSpacing: "0.14em",
+                      marginBottom: 6,
                     }}
                   >
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#05070c"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    {p.callsign}
                   </div>
-                )}
+                  <div
+                    className="display"
+                    style={{ fontSize: 21, fontWeight: 600, marginBottom: 4 }}
+                  >
+                    {p.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                      marginBottom: 14,
+                    }}
+                  >
+                    {p.tagline}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 10.5,
+                      color: "var(--text-dim)",
+                      lineHeight: 1.2,
+                      margin: 0,
+                      minHeight: 60,
+                    }}
+                  >
+                    {p.doctrine}
+                  </p>
+                  <div
+                    style={{
+                      marginTop: 0,
+                      paddingTop: 14,
+                      borderTop: "1px solid var(--border-soft)",
+                      fontSize: 11,
+                      color: p.color,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: p.color,
+                        display: "inline-block",
+                      }}
+                    />
+                    {p.trait}
+                  </div>
+
+                  {isSelected && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 14,
+                        right: 14,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: p.color,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#05070c"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                  )}
+                </TiltCard>
               </div>
             );
           })}
@@ -285,7 +280,7 @@ export default function CharacterSelect({ onSelect, onBack }) {
           disabled={!selected}
           onClick={() => selected && onSelect(selected)}
           style={{
-            marginTop: 44,
+            marginTop: 24,
             opacity: selected ? 1 : 0.35,
             pointerEvents: selected ? "auto" : "none",
             animationDelay: "0.4s",

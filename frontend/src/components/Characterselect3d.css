@@ -1,0 +1,197 @@
+/* =========================================================================
+   Character select — 3D attacker avatars
+   Real depth via stacked SVG layers inside a preserve-3d tilt card, not a
+   flat image. Mouse-tracked tilt + rim light + per-persona glitch material.
+   ========================================================================= */
+
+.persona-scene {
+  perspective: 1400px;
+}
+
+.persona-card3d {
+  position: relative;
+  border-radius: 14px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition:
+    transform 150ms ease-out,
+    filter 320ms ease,
+    opacity 320ms ease;
+  will-change: transform;
+}
+
+.persona-card3d.is-dimmed {
+  filter: blur(1.5px) saturate(0.7) brightness(0.75);
+  opacity: 0.68;
+  transform: scale(0.97) !important;
+}
+
+.persona-card3d-float {
+  animation: personaFloat 5.5s ease-in-out infinite;
+}
+
+@keyframes personaFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.persona-card3d-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 40%),
+    rgba(255, 255, 255, 0.16),
+    transparent 42%
+  );
+  mix-blend-mode: overlay;
+  z-index: 5;
+}
+.persona-card3d:hover .persona-card3d-rim {
+  opacity: 1;
+}
+
+.avatar3d-stage {
+  perspective: 900px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 0 6px;
+}
+
+.avatar3d-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.avatar3d-ring-spin {
+  animation: spinSlow 14s linear infinite;
+}
+.avatar3d-ring-spin-rev {
+  animation: spinSlow 20s linear infinite reverse;
+}
+
+.avatar3d-particle {
+  animation: avatarParticleDrift 3.4s ease-in-out infinite;
+  opacity: 0.7;
+}
+@keyframes avatarParticleDrift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateY(-9px);
+    opacity: 0.9;
+  }
+}
+
+.avatar3d-scan {
+  animation: avatarScanDrop 3.2s ease-in-out infinite;
+}
+@keyframes avatarScanDrop {
+  0% {
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: translateY(190px);
+  }
+  100% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Persona-specific "material" behavior, applied via data-persona on the
+   card root so the whole stack (glow, rings, body) inherits a distinct feel. */
+
+/* RED — aggressive hard glitch jolts */
+.persona-card3d[data-persona="red"]:hover .avatar3d-stack,
+.persona-card3d[data-persona="red"].is-active .avatar3d-stack {
+  animation: glitchJoltRed 2.6s steps(1) infinite;
+}
+@keyframes glitchJoltRed {
+  0%,
+  92%,
+  100% {
+    transform: translateX(0);
+  }
+  93% {
+    transform: translateX(-3px);
+  }
+  95% {
+    transform: translateX(2px);
+  }
+  96% {
+    transform: translateX(-1px);
+  }
+  97% {
+    transform: translateX(0);
+  }
+}
+
+/* BLUE — translucent flicker, like a hologram losing signal */
+.persona-card3d[data-persona="blue"] .avatar3d-stack {
+  animation: ghostFlicker 4.2s ease-in-out infinite;
+}
+@keyframes ghostFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  4% {
+    opacity: 0.55;
+  }
+  6% {
+    opacity: 1;
+  }
+  47% {
+    opacity: 1;
+  }
+  49% {
+    opacity: 0.65;
+  }
+  51% {
+    opacity: 1;
+  }
+}
+
+/* INSIDER — subtle badge glint sweep handled by scan layer already;
+   add a slow uneasy sway to sell "double agent" instability. */
+.persona-card3d[data-persona="insider"]:hover .avatar3d-stack,
+.persona-card3d[data-persona="insider"].is-active .avatar3d-stack {
+  animation: insiderSway 3.6s ease-in-out infinite;
+}
+@keyframes insiderSway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(0.8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .persona-card3d-float,
+  .avatar3d-ring-spin,
+  .avatar3d-ring-spin-rev,
+  .avatar3d-particle,
+  .avatar3d-scan,
+  .persona-card3d[data-persona="red"]:hover .avatar3d-stack,
+  .persona-card3d[data-persona="blue"] .avatar3d-stack,
+  .persona-card3d[data-persona="insider"]:hover .avatar3d-stack {
+    animation: none !important;
+  }
+}
