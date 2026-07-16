@@ -10,14 +10,47 @@ voice + prioritization logic shapes both the narration and the graph traversal
 
 Kept as a single well-prompted module rather than a "multi-agent framework"
 -- for a hackathon build, one clear prompt per task beats orchestration overhead.
+
+MODEL FALLBACK CHAIN
+---------------------
+Running on the free tier means individual models can 429 (rate limit) or
+otherwise fail at any time. Every generation call goes through
+_generate_with_fallback(), which tries a chain of models in order and moves
+to the next one on ANY failure (quota, transient error, model removed,
+etc.), rather than failing the whole request. If every model in the chain
+fails, the caller's own try/except drops back to the deterministic
+_fallback_narration()/canned answer, so the demo never hard-breaks either
+way -- this is defense in depth, not a replacement for the existing
+no-API-key fallback.
+
+Configure the chain with NETTWIN_MODELS (comma-separated, tried in order).
+NETTWIN_MODEL (singular) is still honored for backwards compatibility and,
+if set, is tried first. Defaults to the current (as of mid-2026) free-tier
+Flash lineup -- deliberately excludes Pro-tier models (paid-only on most
+accounts) and gemini-2.0-flash (shut down June 1, 2026).
 """
 from __future__ import annotations
 import os
 import json
+import logging
+from typing import Any
 from google import genai
 
-MODEL = os.environ.get("NETTWIN_MODEL", "gemini-3.5-flash")
+logger = logging.getLogger("nettwin.ai_agent")
+
+DEFAULT_MODEL_CHAIN = [
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite",
+]
+
 _client: genai.Client | None = None
+
+# Updated after every successful call; mainly useful for debugging /
+# surfacing "which model actually answered this" if you want to log it.
+LAST_MODEL_USED: str | None = None
 
 
 def get_client() -> genai.Client:
@@ -25,6 +58,48 @@ def get_client() -> genai.Client:
     if _client is None:
         _client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
     return _client
+
+
+def _model_chain() -> list[str]:
+    """Builds the ordered list of models to try, honoring env overrides."""
+    env_chain = os.environ.get("NETTWIN_MODELS")
+    if env_chain:
+        models = [m.strip() for m in env_chain.split(",") if m.strip()]
+    else:
+        models = list(DEFAULT_MODEL_CHAIN)
+
+    single = os.environ.get("NETTWIN_MODEL")
+    if single and single not in models:
+        models.insert(0, single)
+
+    return models or list(DEFAULT_MODEL_CHAIN)
+
+
+def _generate_with_fallback(*, contents: Any, config: dict) -> Any:
+    """
+    Tries each model in the fallback chain in order and returns the first
+    successful response. Raises the last exception encountered if every
+    model in the chain fails (the caller is expected to catch this and fall
+    back to deterministic/offline behavior).
+    """
+    client = get_client()
+    chain = _model_chain()
+    last_exc: Exception | None = None
+
+    for i, model in enumerate(chain):
+        try:
+            resp = client.models.generate_content(model=model, contents=contents, config=config)
+            global LAST_MODEL_USED
+            LAST_MODEL_USED = model
+            if i > 0:
+                logger.info("Gemini: %s failed over to %s after %d earlier failure(s)", chain[0], model, i)
+            return resp
+        except Exception as e:
+            last_exc = e
+            logger.warning("Gemini model %s failed (%s), trying next in chain…", model, e)
+            continue
+
+    raise last_exc or RuntimeError("No Gemini models configured in NETTWIN_MODELS/NETTWIN_MODEL")
 
 
 # --------------------------------------------------------------------------
@@ -115,15 +190,13 @@ def narrate_attack_path(hops: list[dict], persona: str | None = None) -> list[di
     if not os.environ.get("GEMINI_API_KEY"):
         return _fallback_narration(hops, persona)
 
-    client = get_client()
     payload = [
         {"hop_index": i, "from": h["from_label"], "to": h["to_label"],
          "ports": h["ports"], "trust": h["trust"], "reason": h["reason"]}
         for i, h in enumerate(hops)
     ]
     try:
-        resp = client.models.generate_content(
-            model=MODEL,
+        resp = _generate_with_fallback(
             contents=json.dumps(payload),
             config={
                 "system_instruction": _narration_system(persona),
@@ -134,7 +207,8 @@ def narrate_attack_path(hops: list[dict], persona: str | None = None) -> list[di
         content = resp.text.strip()
         content = content.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         return json.loads(content)
-    except Exception:
+    except Exception as e:
+        logger.warning("narrate_attack_path: all Gemini models failed (%s), using deterministic fallback", e)
         return _fallback_narration(hops, persona)
 
 
@@ -146,7 +220,8 @@ _FALLBACK_VERBS = {
 
 
 def _fallback_narration(hops: list[dict], persona: str | None = None) -> list[dict]:
-    """Deterministic fallback if no API key is set, so the demo never breaks."""
+    """Deterministic fallback if no API key is set (or every model in the
+    chain failed), so the demo never breaks."""
     p_id = (persona or DEFAULT_PERSONA).lower()
     verb = _FALLBACK_VERBS.get(p_id, _FALLBACK_VERBS["red"])
     name = PERSONAS.get(p_id, PERSONAS[DEFAULT_PERSONA])["name"]
@@ -173,10 +248,8 @@ def answer_question(question: str, graph_context: str, persona: str | None = Non
         return (f"[Demo mode - no GEMINI_API_KEY set] {p['name']} ({p['callsign']}) would say: "
                 f"you asked '{question}'. Based on the graph, here is the relevant context:\n\n{graph_context[:800]}")
 
-    client = get_client()
     try:
-        resp = client.models.generate_content(
-            model=MODEL,
+        resp = _generate_with_fallback(
             contents=f"GRAPH CONTEXT:\n{graph_context}\n\nQUESTION: {question}",
             config={
                 "system_instruction": _qa_system(persona),
@@ -185,4 +258,7 @@ def answer_question(question: str, graph_context: str, persona: str | None = Non
         )
         return resp.text.strip()
     except Exception as e:
-        return f"Gemini request failed ({e}). Please check GEMINI_API_KEY and try again."
+        logger.warning("answer_question: all Gemini models failed (%s)", e)
+        return (f"All configured Gemini models are currently unavailable ({e}). "
+                f"This usually means the free-tier quota is exhausted across the whole "
+                f"fallback chain -- try again in a minute, or check GEMINI_API_KEY.")
