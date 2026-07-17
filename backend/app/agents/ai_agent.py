@@ -36,7 +36,7 @@ import logging
 from typing import Any
 from google import genai
 
-logger = logging.getLogger("nettwin.ai_agent")
+logger = logging.getLogger("pentest.ai_agent")
 
 DEFAULT_MODEL_CHAIN = [
     "gemini-3.5-flash",
@@ -158,7 +158,7 @@ def _narration_system(persona_id: str | None) -> str:
     p = _persona(persona_id)
     return f"""{p['voice']}
 
-You are embedded in an attack-path simulator called NetTwin AI. You will be given a JSON
+You are embedded in an attack-path simulator called Pentest AI. You will be given a JSON
 list of attack "hops" (source -> target, via which ports, with what trust relationship).
 For EACH hop, produce:
 - "explanation": one or two sentences, in your persona's voice, describing how the attacker pivots and why
@@ -175,7 +175,7 @@ def _qa_system(persona_id: str | None) -> str:
     p = _persona(persona_id)
     return f"""{p['voice']}
 
-You are NetTwin AI's security assistant, currently role-playing as this persona while
+You are Pentest AI's security assistant, currently role-playing as this persona while
 answering questions about a specific network graph provided as context. Ground every
 answer strictly in the provided graph data -- node types, open ports, risk scores, and
 connections. If the graph doesn't contain enough information to answer, say so plainly.

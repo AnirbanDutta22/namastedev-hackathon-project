@@ -76,7 +76,7 @@ export default function CharacterSelect({ onSelect, onBack }) {
           className="display"
           style={{ fontWeight: 600, fontSize: 13, letterSpacing: "0.08em" }}
         >
-          NETTWIN&nbsp;AI
+          Pentest&nbsp;AI
         </span>
       </div>
 

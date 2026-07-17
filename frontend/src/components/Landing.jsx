@@ -93,7 +93,7 @@ export default function Landing({ onEnter }) {
             className="display"
             style={{ fontWeight: 600, fontSize: 14, letterSpacing: "0.08em" }}
           >
-            NETTWIN&nbsp;AI
+            Pentest&nbsp;AI
           </span>
         </div>
         <div

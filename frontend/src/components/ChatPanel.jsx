@@ -105,7 +105,7 @@ export default function ChatPanel({ sessionId, open, onClose, persona }) {
                 className="display"
                 style={{ fontWeight: 600, fontSize: 16 }}
               >
-                {persona?.name || "NetTwin AI"}
+                {persona?.name || "Pentest AI"}
               </div>
               <div
                 className="mono"
@@ -155,7 +155,7 @@ export default function ChatPanel({ sessionId, open, onClose, persona }) {
                     lineHeight: 1.6,
                   }}
                 >
-                  Ask {persona?.name || "NetTwin AI"} anything about this
+                  Ask {persona?.name || "Pentest AI"} anything about this
                   network — grounded in the actual graph, answered in character.
                   Try:
                 </div>
@@ -219,7 +219,7 @@ export default function ChatPanel({ sessionId, open, onClose, persona }) {
                     fontWeight: 700,
                   }}
                 >
-                  {m.role === "user" ? "You" : persona?.name || "NetTwin AI"}
+                  {m.role === "user" ? "You" : persona?.name || "Pentest AI"}
                 </div>
                 <div style={{ color: "var(--text)" }}>{m.text}</div>
               </div>

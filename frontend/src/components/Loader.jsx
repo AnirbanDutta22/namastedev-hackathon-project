@@ -32,7 +32,7 @@ function shuffle(arr) {
 
 export default function Loader({
   messages = DEFAULT_MESSAGES,
-  label = "NETTWIN AI",
+  label = "Pentest AI",
   fullscreen = true,
   color,
 }) {

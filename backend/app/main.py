@@ -13,7 +13,7 @@ from app.reports.report_builder import build_report
 
 load_dotenv()
 
-app = FastAPI(title="NetTwin AI API")
+app = FastAPI(title="Pentest AI API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

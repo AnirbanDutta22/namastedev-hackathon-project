@@ -313,7 +313,7 @@ export default function App() {
             className="display"
             style={{ fontWeight: 600, fontSize: 14, letterSpacing: "0.03em" }}
           >
-            NetTwin Console
+            PentestAI Console
           </span>
           <div
             style={{ height: 16, width: 1, backgroundColor: "var(--border)" }}
