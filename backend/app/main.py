@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from app.parsers.nmap_parser import parse_nmap_xml
 from app.models.graph_engine import NetworkGraph
 from app.agents.ai_agent import narrate_attack_path, answer_question, PERSONAS
+from app.reports.report_builder import build_report
 
 load_dotenv()
 
@@ -98,7 +99,7 @@ def simulate(session_id: str, body: dict):
 
 
 class ScenarioRequest(BaseModel):
-    action: str  # block_port | isolate_node | remove_node
+    action: str  # block_port | isolate_node | remove_node | patch_hop
     params: dict
 
 
@@ -120,3 +121,32 @@ def ask(session_id: str, req: AskRequest):
     context = graph.context_for_llm()
     answer = answer_question(req.question, context, persona=req.persona)
     return {"answer": answer}
+
+
+class ReportRequest(BaseModel):
+    persona: str = "red"
+    attack_result: dict | None = None
+    original_result: dict | None = None
+    patched: bool = False
+    network_name: str = "Uploaded Network"
+
+
+@app.post("/api/report/{session_id}")
+def report(session_id: str, req: ReportRequest):
+    """
+    Builds a board-ready report from the graph's current state plus whatever
+    attack result the frontend currently has on screen. The frontend passes
+    attack_result/original_result/patched straight from its own state so the
+    report always matches exactly what the user is looking at.
+    """
+    graph = _get_graph(session_id)
+    persona_meta = PERSONAS.get(req.persona.lower(), PERSONAS["red"])
+    return build_report(
+        graph.to_dict(),
+        req.attack_result,
+        req.original_result,
+        req.patched,
+        {"id": req.persona, "name": persona_meta["name"],
+         "callsign": persona_meta["callsign"], "doctrine": persona_meta["doctrine"]},
+        req.network_name,
+    )

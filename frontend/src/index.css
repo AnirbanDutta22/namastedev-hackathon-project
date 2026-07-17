@@ -343,3 +343,30 @@ a {
   color: var(--signal);
   transform: translateY(-2px);
 }
+
+/* ---------------------------------------------------------------------
+   Print styles -- used by ReportView's "Download PDF" (window.print()).
+   Hides the entire app and shows only the report document.
+   --------------------------------------------------------------------- */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .report-printable,
+  .report-printable * {
+    visibility: visible;
+  }
+  .report-printable {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+}

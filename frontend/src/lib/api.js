@@ -54,4 +54,29 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, persona }),
     }).then(handle),
+
+  // Builds a board-ready report from whatever attack result is currently on
+  // screen. attackResult/originalResult are passed straight through from
+  // App state so the report always matches what the user is looking at.
+  getReport: (
+    sessionId,
+    {
+      persona = "red",
+      attackResult = null,
+      originalResult = null,
+      patched = false,
+      networkName = "Uploaded Network",
+    } = {},
+  ) =>
+    fetch(`${BASE_URL}/api/report/${sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        persona,
+        attack_result: attackResult,
+        original_result: originalResult,
+        patched,
+        network_name: networkName,
+      }),
+    }).then(handle),
 };
