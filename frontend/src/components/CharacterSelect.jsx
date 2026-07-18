@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { PERSONAS } from "../lib/personas";
 import BackgroundGraph from "./BackgroundGraph";
-import AttackerAvatar3D from "./AttackerAvatar3D";
-import TiltCard from "./TiltCard";
-import "./characterSelect3d.css";
+import AttackerAvatar3D from "./Attackeravatar3d";
+import TiltCard from "./Tiltcard";
+import "./Characterselect3d.css";
 
 export default function CharacterSelect({ onSelect, onBack }) {
   const [hovered, setHovered] = useState(null);
