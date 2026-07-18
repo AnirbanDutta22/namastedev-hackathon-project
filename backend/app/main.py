@@ -11,12 +11,18 @@ from app.models.graph_engine import NetworkGraph
 from app.agents.ai_agent import narrate_attack_path, answer_question, PERSONAS
 from app.reports.report_builder import build_report
 
+origins = [
+    "https://pentestai-frontend-h4yu.onrender.com",
+    "http://localhost:5173",
+]
+
 load_dotenv()
 
 app = FastAPI(title="Pentest AI API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
